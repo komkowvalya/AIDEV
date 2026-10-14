@@ -87,7 +87,7 @@ slide('01_cover', 'BLENDER 5.2  ·  GEOMETRY NODES', 'US LICENSE PLATES', 'All 5
 im = bg(IW, IH).convert('RGBA')
 y = header(im, 'EVERY STATE INCLUDED', '50 STATES + DC', 'Real state names, slogans, colors and artwork')
 cols, pw = 6, 162; ph = int(pw*0.5); gx, gy = 10, 12
-rows = -(-len(STATES)//cols); x0 = (IW-(cols*pw+(cols-1)*gx))//2; y0 = y+30
+rows = -(-len(STATES)//cols); x0 = (IW-(cols*pw+(cols-1)*gx))//2; y0 = y + ((IH-70-y) - (rows*ph+(rows-1)*gy))//2
 for i, k in enumerate(STATES):
     r, c = divmod(i, cols)
     p = fit(flat(k), pw, ph)
@@ -114,7 +114,9 @@ def panel_img(w, h, scale=1.0):
               ('Frame & Dirt', ['Plastic Frame', 'Flies', 'Frame writing #1-3'])]
     y = int(22*scale); lh = int(36*scale)
     for g, its in groups:
-        d.text((int(26*scale), y), '▾  ' + g, font=ft, fill=(235, 235, 240)); y += lh+int(4*scale)
+        tx, ty, ts = int(30*scale), y+int(13*scale), int(9*scale)
+        d.polygon([(tx-ts, ty-ts//2), (tx+ts, ty-ts//2), (tx, ty+ts)], fill=(200, 200, 206))
+        d.text((int(52*scale), y), g, font=ft, fill=(235, 235, 240)); y += lh+int(4*scale)
         for s in its:
             d.text((int(70*scale), y), s, font=fi, fill=(175, 178, 186))
             d.rounded_rectangle((w-int(230*scale), y+2, w-int(26*scale), y+lh-int(8*scale)), radius=int(6*scale), fill=(58, 58, 64))
@@ -123,19 +125,19 @@ def panel_img(w, h, scale=1.0):
     return im
 im = bg(IW, IH).convert('RGBA')
 y = header(im, 'CLEAN MODIFIER PANEL', 'BEGINNER FRIENDLY', 'Only the inputs you need, grouped in panels\nUS plate specs (12" x 6", 7" hole spacing) built in')
-p = panel_img(860, 960, 1.0); shadow_paste(im, p, ((IW-860)//2, y+30), blur=18, alpha=140)
+p = panel_img(780, 860, 0.88); shadow_paste(im, p, ((IW-780)//2, y+24), blur=18, alpha=140)
 footer(im); im.convert('RGB').save(f'{OUT}/instagram/08_simple_panel.png', optimize=True)
 
 # ------------------------------------------------------------------ Superhive gallery 1920x1080
 SW, SH = 1920, 1080
 im = bg(SW, SH).convert('RGBA'); d = ImageDraw.Draw(im)
 d.text((110, 170), 'BLENDER 5.2  ·  GEOMETRY NODES', font=F(SUB, 40), fill=RED)
-d.text((104, 220), 'LICENSE PLATE', font=F(HEAD, 128), fill=WHITE)
-d.text((104, 380), 'GENERATOR — USA', font=F(HEAD, 128), fill=WHITE)
-d.text((110, 560), 'All 50 states + DC  ·  bend  ·  frame  ·  dirt', font=F(BODY, 46), fill=MUTED)
+d.text((104, 225), 'LICENSE PLATE', font=F(HEAD, 104), fill=WHITE)
+d.text((104, 365), 'GENERATOR · USA', font=F(HEAD, 104), fill=WHITE)
+d.text((110, 530), 'All 50 states + DC  ·  bend  ·  frame  ·  dirt', font=F(BODY, 46), fill=MUTED)
 x = 110
-for s in ['51 PRESETS', 'EEVEE & CYCLES', 'BEGINNER FRIENDLY']: x = pill(d, x, 650, s, F(SUB, 36)) + 18
-h = fit(R('hero'), 1000, 760); shadow_paste(im, h, (SW-h.width-60, (SH-h.height)//2+20))
+for s in ['51 PRESETS', 'EEVEE & CYCLES', 'BEGINNER FRIENDLY']: x = pill(d, x, 620, s, F(SUB, 34)) + 16
+h = fit(R('hero'), 900, 700); shadow_paste(im, h, (SW-h.width-50, (SH-h.height)//2+30))
 im.convert('RGB').save(f'{OUT}/superhive/01_cover.png', optimize=True)
 
 im = bg(SW, SH).convert('RGBA'); d = ImageDraw.Draw(im)
@@ -161,7 +163,7 @@ d.text((110, 340), 'MODIFIER PANEL', font=F(HEAD, 120), fill=WHITE)
 yy = 530
 for s in ['Type the number, pick the state — done', 'US plate specs built in (12" x 6", 7" holes)', 'Hidden layout values stay correct for every state', 'Separate colors for letters, state, slogan, border']:
     d.text((114, yy), '•  ' + s, font=F(BODY, 42), fill=MUTED); yy += 62
-p = panel_img(700, 790, 0.82); shadow_paste(im, p, (SW-700-140, (SH-790)//2), blur=18, alpha=140)
+p = panel_img(700, 860, 0.83); shadow_paste(im, p, (SW-700-140, (SH-860)//2+20), blur=18, alpha=140)
 im.convert('RGB').save(f'{OUT}/superhive/04_panel.png', optimize=True)
 
 for n in ['sep', 'embossed']:

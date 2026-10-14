@@ -8,8 +8,8 @@ SHOTS = {
  'bend':   ('NY', {'Bend angle':0.55}, (0.40,-0.55,0.16),(0,0.02,0),55,(1600,1100)),
  'vanity': ('TX', {'WRITING':'BLENDER','Bend angle':0.06}, (-0.26,-0.62,0.10),(0,0,-0.005),58,(1600,1100)),
  'sep':    ('FL', {'Bend angle':0.05}, (0.24,-0.64,0.08),(0,0,-0.005),58,(1600,1100)),
- 'frame':  ('00_Start', {'Bend angle':0.0,'Screws':True,'Plastic Frame':True,'WRITING':'7GEO123','Frame writing #1':'CERTIFIED PRE-OWNED'}, (-0.20,-0.26,-0.06),(-0.06,0.0,-0.045),45,(1600,1100)),
- 'dirt':   ('AZ', {'Bend angle':0.05,'Flies':True,'Plastic Frame':True,'Frame writing #2':'DESERT AUTO','Frame writing #3':'TUCSON  AZ'}, (0.16,-0.36,0.03),(0.03,0.0,-0.01),50,(1600,1100)),
+ 'frame':  ('00_Start', {'Bend angle':0.0,'Screws':True,'Plastic Frame':True,'WRITING':'7GEO123','Frame writing #1':'CERTIFIED PRE-OWNED'}, (-0.24,-0.44,-0.03),(-0.02,0.0,-0.02),50,(1600,1100)),
+ 'dirt':   ('AZ', {'Bend angle':0.05,'Flies':True,'Plastic Frame':True,'Frame writing #2':'DESERT AUTO','Frame writing #3':'TUCSON  AZ'}, (0.22,-0.50,0.05),(0.0,0.0,-0.01),50,(1600,1100)),
  'embossed':('ID', {'Bend angle':0.0}, (0.10,-0.42,0.05),(0.02,0.0,0),50,(1600,1100)),
 }
 for name,(obj,vals,cl,tg,lens,res) in SHOTS.items():
