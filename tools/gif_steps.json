@@ -1,0 +1,12 @@
+[
+ {"set": {"WRITING": "8ABC123", "Font Index (6-Custom)": 0, "Letters Height": 0.0012, "SLOGAN": "DMV.CA.GOV", "Plastic Frame": false, "Flies": false, "Frame writing #2": "BLENDER MOTORS", "Frame writing #3": "WWW.BLENDER.ORG"}},
+ {"set": {"WRITING": "BLENDER"}},
+ {"set": {"Font Index (6-Custom)": 2}},
+ {"set": {"Font Index (6-Custom)": 4}},
+ {"set": {"Letters Height": 0.0}},
+ {"set": {"Letters Height": 0.003}},
+ {"set": {"Custom Letter Color": [0.55, 0.012, 0.02, 1.0]}},
+ {"set": {"SLOGAN": "GEOMETRY NODES"}},
+ {"set": {"Plastic Frame": true}},
+ {"set": {"Flies": true}}
+]
