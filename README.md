@@ -12,12 +12,16 @@ See the changelog in `marketing/superhive_listing.md`.
 ## Backbone truck sim (`tatra-sim/index.html`)
 
 A browser driving game covering every axle and drive layout of a central-tube backbone truck,
-from 4×2 to 16×16. Open the file in a browser (it loads Three.js from jsDelivr).
+from 4×2 to 16×16. Open the file in a browser (it loads Three.js from jsDelivr). Plan and checklist: `tatra-sim/PLAN.md`.
 
-- **Chassis:** a central backbone tube built from the axle housings. Each wheel hangs on its own
-  swing half-axle pivoting on the tube centreline, so camber changes as it articulates. Tandem rear
-  axles share one rocking leaf spring per side; the other axles are sprung individually.
-- **Configurations:** 2–8 axles, any split between the front and rear groups, and a drive/steer
-  toggle on every axle. `[` / `]` steps through all 501 axle-count × driven-axle combinations.
+- **Chassis:** a silver central backbone tube built from flanged axle housings, with a finned transfer case
+  between the groups. Each wheel hangs on its own swing half-axle pivoting on the tube centreline, sprung by an
+  air bellows with a coil spring. Steered axles carry kingpin knuckles, split tie rods, relay levers and drag links;
+  fixed axles carry rigid hubs and reaction rods. Tandem air springs are linked, so the load equalises.
+- **Truck:** a faceted Force-style cab (no manufacturer logo), body choices, five paints.
+- **Configurations:** 2–8 axles, any front/rear split, drive and steer toggles on every axle; `[` / `]` step through
+  all 501 combinations. Front, rear, full (all-wheel) and crab steering.
 - **Drivetrain:** open, inter-axle-locked or fully locked differentials, high and low range.
-- **Courses:** axle twister, hill (40–70 % grades), trenches, logs, mud.
+- **World:** golden-hour sky, five courses (axle twister, 40–70 % hill, trenches, logs, mud), dust and tyre tracks.
+- **Font:** the UI asks for Interstate first and falls back to Overpass, since Interstate is a commercial font that
+  cannot be bundled. Put `interstate.woff2` next to the page and add an `@font-face` rule to use your licensed copy.
