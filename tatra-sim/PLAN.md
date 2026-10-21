@@ -67,3 +67,52 @@ network policy), so the chassis follows the published layout of Tatra T815-7 / F
   where normal steering turns 140°. 4×4 rear-only steering turns.
 - 216 configurations built in all three steering modes without errors; no horizontal overflow at 390 px.
 - Not verified: frame rate on a real GPU, keyboard feel.
+
+# v3 plan (polygon digital twin, chassis only, performance)
+
+Sources: the user's aerial photo of the polygon (layout traced and snapped to the asphalt; scale from the
+1 600 m middle lane of the speed circuit, 1.022 m/px), the TATRA test-area brochure (track specs and the
+location of every special road on its site maps), and web sources (21–22 km of roads, 60 ha, built from 1967).
+The real road geometry from OpenStreetMap could not be fetched from this environment.
+
+## H. Map: Tatra polygon digital twin
+- [x] H1 Road network traced from the aerial photo: speed circuit, measuring straights, access roads, slope
+      circuit, serpentine, off-road circuit loops and forest tracks, spoon and teardrop loops, links
+- [x] H2 Speed circuit: 3 lanes (inner 5 %, middle 7.5 %, outer 10 % banking), on an 8–10 % hillside, lane lines, guard rail
+- [x] H3 Skid pad: Ø 100 m with marked circles r 20/30/40 m, entry from the oval; moose-test cones on the oval
+- [x] H4 Special roads in the band inside the oval (400 m × 4 m lanes): torsion (100 m, ±43 cm, ±20 % cross slope),
+      bending (120 m, ±0.7 m waves), setts 10×10 (±3 cm), low-adhesion basalt (140 m, μ≈0.25), sinusoidal resonance
+      (20 mm × 300 mm @ 770 mm, part at 40°), river cobbles (≤10 cm), pavé (±10 cm, both tracks shifted 20 m),
+      Belgian setts with 7 cm potholes, shallow ford (0.2 m), lateral-stability road (230 m, cross slope 0→57.7 %)
+- [x] H5 Panel road: 450 m × 6 m arc inside the oval, 3 m panels with random offsets
+- [x] H6 Noise road (ISO 10844) in the vehicle park; vehicle park with parked trucks
+- [x] H7 Steep slopes in granite setts: 16, 17, 22, 30, 45, 65 % (**simplified:** each is a mound whose crest is capped at 8 m; the real ramps climb the hillside)
+- [x] H8 Deep water ford (60 m, 10 % ramps, water set to 1.0 m of the possible 2 m), mud ford (50 m, 7.5 % ramps, 0.1–0.4 m mud), abrasive road (15 %, coarse aggregate)
+- [x] H9 Terrain from the photo: forest mask from the photo's colours, factory halls, hillside elevation
+- [x] H10 Zone chip: shows the name and spec of the track you are on
+- [x] H11 Minimap drawn from the road network; teleports to every section
+- [x] H12 Simple, modern, minimal look: pale terrain, grey roads, white buildings, rounded trees, gradient sky
+
+## I. Chassis only
+- [x] I1 Cab, body, frame and engine removed; chassis only
+- [x] I2 Air bellows per wheel station on every axle (rolling-lobe on steered axles, double-convoluted on fixed ones), brackets from the housings, no coil springs
+- [x] I3 Geometry closer to the reference render: trumpet half-axle housings, gunmetal castings with a cast-surface texture, light rims
+- [x] I4 X-ray without drive shafts or gears
+
+## J. UI and performance
+- [x] J1 Performance mode only: no post-processing, pixel ratio 1, 2048 shadows, no grass
+- [x] J2 Simplified HUD: one compact bar, config card, minimap, zone chip; keys behind a help button
+- [x] J3 Simplified garage: map, layout, configurations, steering, drivetrain, places, view
+- [x] J4 Keep the test-courses map as a second map
+
+## Not modelled or approximate in v3
+- Tipper circuit, dynamic test lab, cab impact rig and presentation centres (buildings are plain blocks).
+- Speed-circuit curve radii: the brochure gives R 327–335 m; the model follows the shape in the aerial photo.
+- The special-road band follows the 7.5 % hillside; the brochure calls those roads level straights.
+- Positions of the fords, abrasive road and ramps come from the brochure's small site maps, so they are approximate.
+
+## v3 verification (headless Chromium, software GL)
+- Drives: speed circuit at 96 km/h; special lanes, torsion, lateral-stability (30°, no rollover); 16 %, 45 %, 65 % slopes
+  climbed by 8×8; a 4×2 stalls just below the 65 % crest from standstill; deep ford wading 0.59 m; mud ford; 16×16 on
+  the terrain circuit; crab on the skid pad. Courses map still builds and drives.
+- Render load: about 450 draw calls and 1.6 M triangles on the polygon map, with no post-processing and pixel ratio 1.
