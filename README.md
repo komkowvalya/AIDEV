@@ -8,3 +8,16 @@
 
 ## v1.1 changes
 See the changelog in `marketing/superhive_listing.md`.
+
+## Backbone truck sim (`tatra-sim/index.html`)
+
+A browser driving game covering every axle and drive layout of a central-tube backbone truck,
+from 4×2 to 16×16. Open the file in a browser (it loads Three.js from jsDelivr).
+
+- **Chassis:** a central backbone tube built from the axle housings. Each wheel hangs on its own
+  swing half-axle pivoting on the tube centreline, so camber changes as it articulates. Tandem rear
+  axles share one rocking leaf spring per side; the other axles are sprung individually.
+- **Configurations:** 2–8 axles, any split between the front and rear groups, and a drive/steer
+  toggle on every axle. `[` / `]` steps through all 501 axle-count × driven-axle combinations.
+- **Drivetrain:** open, inter-axle-locked or fully locked differentials, high and low range.
+- **Courses:** axle twister, hill (40–70 % grades), trenches, logs, mud.
