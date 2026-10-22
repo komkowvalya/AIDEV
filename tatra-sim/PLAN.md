@@ -152,3 +152,10 @@ The real road geometry from OpenStreetMap could not be fetched from this environ
       full-lock turns at 36–90 km/h, 4×4 / 8×8 / 16×16, max roll 4°, no flips. All course runs still pass.
 - [x] M5 Fixed a first-frame bug: a negative dt after the async load stalled physics and HUD for ~15 frames.
 - Not included in the repo: the 28 MB source .blend (only the export scripts and the generated binary).
+
+# v7 (finish)
+- [x] N1 Backbone ends at the first and last axle housings: end caps and overhanging tube stubs removed.
+- [x] N2 Whole suspension in two finishes as in the reference render: one satin steel for castings, links, brackets,
+      tube and rims; one rubber for bellows and boots. Driven castings still turn red with "Show driven" / X-ray.
+- [x] N3 Rims fully steel: rim parts use the suspension steel and render double-sided (the CAD rim is a single
+      sheet, so back faces were dropping out and looked dark). Checked the source: rubber faces start at the tyre bead (r ≥ 0.28 m).

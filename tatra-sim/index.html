@@ -1204,6 +1204,10 @@ const MAT={
   rim:new THREE.MeshStandardMaterial({color:0xc9ccce,roughness:0.38,metalness:0.6}),
   dark:new THREE.MeshStandardMaterial({color:0x2f3438,roughness:0.55,metalness:0.55,normalMap:TX.castN,normalScale:new THREE.Vector2(0.3,0.3)}),
   shadow:new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}), // invisible proxy that only casts shadows
+  // the two finishes of the reference render: one steel for every metal part (castings, links, rims), one rubber
+  sSteel:new THREE.MeshStandardMaterial({color:0x737a81,roughness:0.5,metalness:0.5,envMapIntensity:0.7,normalMap:TX.castN,normalScale:new THREE.Vector2(0.12,0.12),side:THREE.DoubleSide}),
+  sRubber:new THREE.MeshStandardMaterial({color:0x151617,roughness:0.82,metalness:0,side:THREE.DoubleSide}),
+  sTyre:new THREE.MeshStandardMaterial({color:0x1b1b1c,roughness:0.9,metalness:0,side:THREE.DoubleSide}),
 };
 const Y=new V3(0,1,0), Z=new V3(0,0,1);
 const GEO={};
@@ -1296,12 +1300,12 @@ function placeRod(m,a,b,r){ _dir.subVectors(b,a); const len=_dir.length(); m.pos
 function beam(parent,a,b,w,h,mat){ const m=add(parent,new THREE.BoxGeometry(w,h,1),mat); _dir.subVectors(b,a); const len=_dir.length();
   m.position.addVectors(a,b).multiplyScalar(0.5); m.scale.z=len; m.quaternion.setFromUnitVectors(Z,_dir.divideScalar(len)); return m; }
 
-const PMAT={cast:'cast',dark:'dark',steel:'steel',rubber:'rubber',tyre:'tyre',rim:'rim'};
+const PMAT={cast:'sSteel',dark:'sSteel',steel:'sSteel',rim:'sSteel',rubber:'sRubber',tyre:'sTyre'};
 // add every material part of a CAD group to `parent`; cast parts are registered for highlight / X-ray
 function addParts(parent,grp,reg,driven){
   for(const [cat,g] of Object.entries(PARTS[grp]||{})){
     const m=new THREE.Mesh(g,MAT[PMAT[cat]]); m.castShadow=cat==='tyre'; m.receiveShadow=true; parent.add(m);
-    if(reg&&(cat==='cast'||cat==='dark')) reg.push({m,hl:driven,base:MAT[PMAT[cat]]});
+    if(reg&&cat!=='rubber'&&cat!=='tyre') reg.push({m,hl:driven,base:MAT[PMAT[cat]]});
   }
 }
 function shadowProxy(parent,geo,x=0,y=0,z=0){ const m=new THREE.Mesh(geo,MAT.shadow); m.position.set(x,y,z); m.castShadow=true; parent.add(m); return m; }
@@ -1314,13 +1318,13 @@ function buildTruckMesh(){
   const chassis=new THREE.Group(); truckRoot.add(chassis);
 
   /* backbone tube between the axle housings (the CAD model gives the housings, not the tube) */
-  const zFront=z0+0.75, zBack=zl-0.55;
+  // the backbone runs between the axle housings only: no overhang and no end caps
   const ends=zs.map((z,i)=>cfg.steer[i]?[z+0.42,z-0.42]:[z+0.62,z-0.3]);
-  const segs=[[zFront,ends[0][0]]]; for(let i=0;i<n-1;i++) segs.push([ends[i][1],ends[i+1][0]]); segs.push([ends[n-1][1],zBack]);
+  const zFront=ends[0][0], zBack=ends[n-1][1];
+  const segs=[]; for(let i=0;i<n-1;i++) segs.push([ends[i][1],ends[i+1][0]]);
   for(const [a,b] of segs){ const len=a-b; if(len<=0.05) continue; const zc=(a+b)/2;
-    V.tube.push(add(chassis,cylZ(0.14,len,28),MAT.tube,0,yB,zc,false));
-    for(const e of [a-0.02,b+0.02]){ V.tube.push(add(chassis,cylZ(0.19,0.04,28),MAT.tube,0,yB,e,false)); add(chassis,boltRingZ(10,0.165,0),MAT.steel,0,yB,e+(e>zc?-0.03:0.03),false); } }
-  for(const [z,r] of [[zBack-0.02,0.18],[zFront+0.03,0.2]]) V.housings.push({m:add(chassis,cylZ(r,0.08,28),MAT.cast,0,yB,z,false),hl:false});
+    V.tube.push(add(chassis,cylZ(0.14,len,28),MAT.sSteel,0,yB,zc,false));
+    for(const e of [a-0.02,b+0.02]){ V.tube.push(add(chassis,cylZ(0.19,0.04,28),MAT.sSteel,0,yB,e,false)); add(chassis,boltRingZ(10,0.165,0),MAT.sSteel,0,yB,e+(e>zc?-0.03:0.03),false); } }
   shadowProxy(chassis,cylZ(0.17,zFront-zBack,10),0,yB,(zFront+zBack)/2);
 
   /* transfer case from the CAD model, between the front and rear groups */
@@ -1356,7 +1360,7 @@ function applyView(){
   const hl=state.hl||state.xray;
   for(const {m,hl:d,base} of V.housings) m.material=state.xray?(d?MAT.castHLX:MAT.castX):(hl&&d?MAT.castHL:base||MAT.cast);
   for(const {m,hl:d,base} of V.arms) m.material=hl&&d?MAT.castHL:base||MAT.cast;
-  for(const m of V.tube) m.material=state.xray?MAT.castX:MAT.tube;
+  for(const m of V.tube) m.material=state.xray?MAT.castX:MAT.sSteel;
   $('xray').classList.toggle('on',state.xray); $('hlBtn').classList.toggle('on',state.hl);
 }
 
