@@ -58,10 +58,13 @@
   #cfgName{flex:1;text-align:center;font:700 12px/1.25 var(--f)}
   .note{font-size:12.5px;color:var(--mute)}
 
-  #mapBox{position:fixed;right:calc(14px + var(--sr));top:calc(14px + var(--st));padding:6px}
-  #map{display:block;width:190px;height:190px;border-radius:4px}
+  #mapBox{position:fixed;right:calc(14px + var(--sr));top:calc(14px + var(--st));cursor:pointer;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+  #map{display:block;width:210px;height:210px;border-radius:4px}
+  #bigMap{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;padding-block:20px}
+  #bigMap[hidden]{display:none!important}
+  #bigMapC{width:min(84vh,92vw);height:min(84vh,92vw);border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 
-  #zone{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + var(--st));padding:9px 16px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;max-width:min(520px,60vw);text-align:center}
+  #zone{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + var(--sb));padding:9px 16px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;max-width:min(520px,60vw);text-align:center}
   #zone[hidden]{display:none!important}
   #zoneN{font:900 15px/1.1 var(--f);letter-spacing:.02em}
   #zoneI{font-size:12.5px;color:var(--mute)}
@@ -82,7 +85,7 @@
   #help[hidden]{display:none!important}
   #help b{font:800 11px/1.6 var(--f);color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:0 6px;justify-self:start}
 
-  #toast{position:fixed;left:50%;bottom:calc(84px + var(--sb));transform:translate(-50%,8px);opacity:0;padding:10px 16px 9px;font:700 14px/1.25 var(--f);transition:opacity .25s,transform .25s;pointer-events:none;text-align:center;max-width:min(560px,80vw)}
+  #toast{position:fixed;left:50%;top:calc(14px + var(--st));transform:translate(-50%,-8px);z-index:30;opacity:0;padding:10px 16px 9px;font:700 14px/1.25 var(--f);transition:opacity .25s,transform .25s;pointer-events:none;text-align:center;max-width:min(560px,80vw)}
   #toast.show{opacity:1;transform:translate(-50%,0)}
 
   #start{position:fixed;inset:0;display:flex;align-items:center;background:linear-gradient(90deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.7) 42%,rgba(0,0,0,0) 76%);
@@ -102,8 +105,8 @@
   @media (max-width:760px){
     #garage{width:auto;right:calc(14px + var(--sr));top:auto;max-height:55%;bottom:calc(96px + var(--sb))}
     #bar{bottom:calc(92px + var(--sb))} #bar>div{padding:7px 9px 6px} #bar>div:nth-child(n+4){display:none} #spd{font-size:26px}
-    #schemBox{display:none} #mapBox{padding:4px} #map{width:104px;height:104px}
-    #brand .m{display:none} #zone{top:calc(64px + var(--st));max-width:80vw}
+    #schemBox{display:none} #map{width:110px;height:110px}
+    #brand .m{display:none} #zone{bottom:calc(150px + var(--sb));max-width:80vw}
     #garage:not([hidden]) ~ #bar{display:none}
   }
   @media (prefers-reduced-motion:reduce){ #toast{transition:none} }
@@ -153,6 +156,7 @@
   <div class="sec">
     <div class="lbl">View</div>
     <div class="row"><button id="camBtn">Camera: Chase</button><button id="xray">X-ray</button><button id="hlBtn">Show driven</button></div>
+    <div class="seg" id="moodSeg"><button data-mood="golden">Golden hour</button><button data-mood="white">White</button><button data-mood="dusk">Dusk</button></div>
   </div>
 </aside>
 
@@ -166,10 +170,12 @@
   <b>C · X · H</b><span>camera · X-ray · show driven</span>
   <b>R</b><span>reset upright</span>
   <b>Tab</b><span>garage</span>
+  <b>N · V</b><span>map · mood</span>
   <b>M</b><span>sound</span>
 </div>
 
-<div id="mapBox" class="glass"><canvas id="map" width="380" height="380"></canvas></div>
+<div id="mapBox" title="Open the map (N)"><canvas id="map" width="380" height="380"></canvas></div>
+<div id="bigMap" hidden><canvas id="bigMapC" width="1140" height="1140"></canvas><div class="lbl" id="bigMapHint">Click or press N to close</div></div>
 <div id="zone" class="glass" hidden><b id="zoneN"></b><span id="zoneI"></span></div>
 
 <div id="bar" class="glass">
@@ -251,27 +257,81 @@ renderer.toneMappingExposure=0.95;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(52,1,0.1,6000);
-const SKY_TOP=new THREE.Color(0x8fb8d6), SKY_BOT=new THREE.Color(0xe4e9ea);
-scene.fog=new THREE.Fog(SKY_BOT.getHex(),350,2600);
-const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{top:{value:SKY_TOP},bot:{value:SKY_BOT}},
-  vertexShader:'varying vec3 vp; void main(){ vp=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
-  fragmentShader:`uniform vec3 top,bot; varying vec3 vp; void main(){ float t=clamp(vp.y*1.8+0.04,0.,1.); gl_FragColor=vec4(mix(bot,top,pow(t,0.65)),1.);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }`});
-const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,32,16),skyMat); sky.renderOrder=-1; scene.add(sky);
-{ const pm=new THREE.PMREMGenerator(renderer), es=new THREE.Scene();
-  es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),skyMat));
-  es.add(new THREE.Mesh(new THREE.SphereGeometry(90,32,16,0,Math.PI*2,Math.PI*0.5,Math.PI*0.5),new THREE.MeshBasicMaterial({color:0x8e9a80,side:THREE.BackSide})));
-  scene.environment=pm.fromScene(es,0.02).texture; }
-scene.add(new THREE.HemisphereLight(0xdfeaf2,0x8a8a74,0.85));
-const sunDir=new V3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-38),THREE.MathUtils.degToRad(215));
-const sun=new THREE.DirectionalLight(0xfff4e6,2.6);
+const camera=new THREE.PerspectiveCamera(52,1,0.25,6000);
+// Moods: Golden hour (warm, long shadows), White (high-key, red accents), Dusk (low sun, layered haze)
+const MOODS={
+  golden:{label:'Golden hour',top:0x5d8dbd,mid:0xf0c79c,bot:0xf6dcb9,sunC:0xffb86b,elev:13,az:232,light:0xffc890,li:3.2,hemiS:0xf6dcbd,hemiG:0x6d5c46,hi:0.8,fog:[150,1800],exp:0.95,
+    ground:{grass:[204,196,152],forest:[164,156,112],gravel:[224,206,168],shoulder:[230,218,194],lot:[198,190,178],mud:[128,100,74],agg:[164,152,134]},
+    road:0xb0aaa0,roadDark:0x77736d,gravelR:0xdcc7a2,tree:[0.12,0.34,0.44],bush:[0.15,0.3,0.36],grass:[0.13,0.4,0.5],hills:[0xd9a87c,0xcf9873,0xbf8a6c],dust:0xffd7a0},
+  white:{label:'White',top:0xd6dce2,mid:0xf2f2f0,bot:0xf8f8f6,sunC:0xffffff,elev:50,az:210,light:0xffffff,li:2.2,hemiS:0xffffff,hemiG:0xb7babd,hi:1.2,fog:[240,2000],exp:1.0,
+    ground:{grass:[238,238,235],forest:[224,225,221],gravel:[232,230,225],shoulder:[246,246,244],lot:[226,226,224],mud:[188,184,178],agg:[210,208,204]},
+    road:0xd0d1d2,roadDark:0xa6a8aa,gravelR:0xe4e2dd,tree:[0,0,0.93],bush:[0,0,0.9],grass:[0,0,0.88],hills:[0xe6e7e8,0xdcdde0,0xd2d4d7],dust:0xffffff},
+  dusk:{label:'Dusk',top:0x24305c,mid:0xc77b84,bot:0xf3aa80,sunC:0xff8248,elev:4.5,az:252,light:0xff9a6a,li:2.4,hemiS:0xa996c2,hemiG:0x4a3640,hi:0.95,fog:[110,1500],exp:1.05,
+    ground:{grass:[186,170,150],forest:[146,128,118],gravel:[206,180,158],shoulder:[214,192,176],lot:[176,164,160],mud:[110,84,70],agg:[150,134,124]},
+    road:0x9a8f8c,roadDark:0x6a605f,gravelR:0xcdb19a,tree:[0.02,0.2,0.3],bush:[0.98,0.18,0.3],grass:[0.03,0.22,0.2],hills:[0x9b6f86,0x7f5c7c,0x5f4a70]},
+};
+let MOOD=MOODS.golden;
+const skyU={top:{value:new THREE.Color()},mid:{value:new THREE.Color()},bot:{value:new THREE.Color()},sunC:{value:new THREE.Color()},sunD:{value:new V3(0,1,0)}};
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
+  vertexShader:'varying vec3 vp; void main(){ vp=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+  fragmentShader:`uniform vec3 top,mid,bot,sunC,sunD; varying vec3 vp;
+    void main(){ vec3 d=normalize(vp); float h=d.y;
+      vec3 c=mix(bot,mid,smoothstep(-0.02,0.16,h)); c=mix(c,top,smoothstep(0.12,0.85,h));
+      float s=max(dot(d,sunD),0.);
+      c+=sunC*(pow(s,6.)*0.28+pow(s,48.)*0.55)+sunC*0.22*pow(1.-abs(h),8.)*pow(s,1.5);
+      c+=sunC*smoothstep(0.99955,0.9998,s)*1.6;
+      gl_FragColor=vec4(c,1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,40,20),skyMat); sky.renderOrder=-1; scene.add(sky);
+scene.fog=new THREE.Fog(0xffffff,150,1800);
+const hemi=new THREE.HemisphereLight(0xffffff,0x888888,0.8); scene.add(hemi);
+const sunDir=new V3();
+const sun=new THREE.DirectionalLight(0xffffff,3);
 sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
-Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,near:1,far:180});
-sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03;
+Object.assign(sun.shadow.camera,{left:-26,right:26,top:26,bottom:-26,near:1,far:220});
+sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.04;
 scene.add(sun,sun.target);
+const pmrem=new THREE.PMREMGenerator(renderer);
+// layered hill silhouettes beyond the map, pre-blended into the horizon haze
+const hills=new THREE.Group(); scene.add(hills);
+function buildHills(){
+  while(hills.children.length){ const o=hills.children.pop(); o.geometry.dispose(); o.material.dispose(); }
+  const r=rng(5), bot=new THREE.Color(MOOD.bot);
+  [[1900,70,0.45],[2500,120,0.62],[3200,190,0.78]].forEach(([R,amp,haze],li)=>{
+    const seg=180, pos=[], idx=[], ph=[r()*6,r()*6,r()*6,r()*6];
+    for(let i=0;i<=seg;i++){ const a=i/seg*Math.PI*2, n=0.5+0.28*Math.sin(a*3+ph[0])+0.14*Math.sin(a*7+ph[1])+0.06*Math.sin(a*19+ph[2])+0.03*Math.sin(a*41+ph[3]);
+      pos.push(Math.cos(a)*R,-80,Math.sin(a)*R, Math.cos(a)*R,-30+amp*n,Math.sin(a)*R); }
+    for(let i=0;i<seg;i++){ const a=i*2; idx.push(a,a+1,a+2,a+1,a+3,a+2); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:new THREE.Color(MOOD.hills[li]).lerp(bot,haze),fog:false,side:THREE.DoubleSide}));
+    m.renderOrder=-0.5; hills.add(m); });
+}
+// dust motes drifting in the light around the camera
+const MOTES=(()=>{ const N=700, pos=new Float32Array(N*3), r=rng(9); for(let i=0;i<N*3;i++) pos[i]=(r()-0.5)*70;
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const m=new THREE.PointsMaterial({size:0.09,sizeAttenuation:true,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending,color:0xffffff,fog:false});
+  const p=new THREE.Points(g,m); p.frustumCulled=false; scene.add(p); return {p,pos,N}; })();
+function updateMotes(dt,cam,t){
+  const P=MOTES.pos; for(let i=0;i<MOTES.N;i++){ const k=i*3; P[k]+=Math.sin(t*0.3+i)*0.15*dt+0.25*dt; P[k+1]+=Math.cos(t*0.21+i*1.7)*0.1*dt; P[k+2]+=0.12*dt;
+    for(let a=0;a<3;a++){ if(P[k+a]>35) P[k+a]-=70; if(P[k+a]<-35) P[k+a]+=70; } }
+  MOTES.p.geometry.attributes.position.needsUpdate=true; MOTES.p.position.copy(cam.position);
+}
+function applyMood(id){
+  MOOD=MOODS[id];
+  skyU.top.value.setHex(MOOD.top); skyU.mid.value.setHex(MOOD.mid); skyU.bot.value.setHex(MOOD.bot); skyU.sunC.value.setHex(MOOD.sunC);
+  sunDir.setFromSphericalCoords(1,THREE.MathUtils.degToRad(90-MOOD.elev),THREE.MathUtils.degToRad(MOOD.az)); skyU.sunD.value.copy(sunDir);
+  scene.fog.color.setHex(MOOD.bot); scene.fog.near=MOOD.fog[0]; scene.fog.far=MOOD.fog[1];
+  hemi.color.setHex(MOOD.hemiS); hemi.groundColor.setHex(MOOD.hemiG); hemi.intensity=MOOD.hi;
+  sun.color.setHex(MOOD.light); sun.intensity=MOOD.li; renderer.toneMappingExposure=MOOD.exp;
+  MOTES.p.material.color.setHex(MOOD.dust); MOTES.p.material.opacity=id==='white'?0.18:0.5;
+  const es=new THREE.Scene(); es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),skyMat));
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(90,32,16,0,Math.PI*2,Math.PI*0.5,Math.PI*0.5),new THREE.MeshBasicMaterial({color:new THREE.Color(...MOOD.ground.grass.map(v=>v/255)),side:THREE.BackSide})));
+  if(scene.environment) scene.environment.dispose(); scene.environment=pmrem.fromScene(es,0.02).texture;
+  buildHills();
+}
+applyMood('golden');
 const world=new THREE.Group(); scene.add(world);
 
 /* =====================================================================
@@ -310,6 +370,7 @@ const RM={
   building:new THREE.MeshStandardMaterial({color:0xf1f1ec,roughness:0.85}),
   rail:new THREE.MeshStandardMaterial({color:0xd9dbdc,roughness:0.4,metalness:0.6}),
 };
+RM.asphalt.color.setHex(MOOD.road); RM.dark.color.setHex(MOOD.roadDark); RM.gravel.color.setHex(MOOD.gravelR);
 
 /* =====================================================================
    Map system. A map supplies H (height), MU (grip), surf (surface kind),
@@ -322,7 +383,7 @@ function groundNormal(x,z,out){
   const hx=(H(x+_e,z)-H(x-_e,z))/(2*_e), hz=(H(x,z+_e)-H(x,z-_e))/(2*_e);
   return out.set(-hx,1,-hz).normalize();
 }
-function clearWorld(){ while(world.children.length){ const o=world.children.pop(); o.traverse(c=>{ if(c.geometry) c.geometry.dispose(); }); } }
+function clearWorld(){ VEG_TILES.length=0; while(world.children.length){ const o=world.children.pop(); o.traverse(c=>{ if(c.geometry) c.geometry.dispose(); }); } }
 function addW(o){ world.add(o); return o; }
 
 // a mesh that follows the ground: sample H on a polyline ribbon (u along, v across)
@@ -339,7 +400,8 @@ function ribbon(pts,closed,w,mat,opts={}){
   }
   for(let k=0;k<N;k++) for(let j=0;j<across-1;j++){ const a=k*across+j, b=a+across; idx.push(a,b,a+1,a+1,b,b+1); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals();
-  const m=new THREE.Mesh(g,mat); m.receiveShadow=true; return addW(m);
+  let mm=mat; if(opts.layer!==undefined){ mm=mat.clone(); mm.polygonOffset=true; mm.polygonOffsetFactor=-2; mm.polygonOffsetUnits=-4-opts.layer*3; }
+  const m=new THREE.Mesh(g,mm); m.receiveShadow=true; return addW(m);
 }
 function dashes(pts,closed,t,len,gap,width,mat){
   const curve=new THREE.CatmullRomCurve3(pts.map(p=>new V3(p[0],0,p[1])),closed,'centripetal');
@@ -348,7 +410,7 @@ function dashes(pts,closed,t,len,gap,width,mat){
     const seg=[]; for(let k=0;k<=4;k++){ const p=curve.getPointAt(Math.min(1,(s+len*k/4)/L)); seg.push([p.x,p.z]); }
     parts.push(seg);
   }
-  for(const seg of parts) ribbon(seg,false,width,mat,{t0:t-width/2,t1:t+width/2,step:len/4,across:2,yOff:0.06});
+  for(const seg of parts) ribbon(seg,false,width,mat,{t0:t-width/2,t1:t+width/2,step:len/4,across:2,yOff:0.07});
 }
 // a ground-following patch inside a polygon or circle
 function areaMesh(inside,x0,z0,x1,z1,cell,mat,yOff=0.03){
@@ -373,17 +435,89 @@ function terrainFromGrid(x0,z0,w,h,step,hf,colorAt,mat){
   g.computeVertexNormals();
   const m=new THREE.Mesh(g,mat); m.receiveShadow=true; return addW(m);
 }
-const groundMat=new THREE.MeshStandardMaterial({vertexColors:true,map:TX.ground,normalMap:TX.groundN,normalScale:new THREE.Vector2(0.5,0.5),roughness:0.97,metalness:0});
+const groundMat=new THREE.MeshStandardMaterial({vertexColors:true,map:TX.ground,normalMap:TX.groundN,normalScale:new THREE.Vector2(0.35,0.35),roughness:0.97,metalness:0});
+
+// poster-style map frame: black field, title block, north arrow, scale bar, corner ticks
+function posterFrame(g,S,title,sub,mPerPx){
+  const k=S/380; g.save();
+  g.strokeStyle='rgba(255,255,255,.18)'; g.lineWidth=1*k;
+  for(const [x,y,dx,dy] of [[8,8,1,1],[372,8,-1,1],[8,372,1,-1],[372,372,-1,-1]]){ g.beginPath(); g.moveTo((x+dx*12)*k,y*k); g.lineTo(x*k,y*k); g.lineTo(x*k,(y+dy*12)*k); g.stroke(); }
+  const tk=k<1.5?1.45:k; g.fillStyle='#f4f4f2'; g.font=`900 ${15*tk}px Overpass,sans-serif`; g.letterSpacing=`${1.2*tk}px`; g.textBaseline='top'; g.fillText(title,20*k,18*k);
+  g.fillStyle='#e3101a'; g.fillRect(20*k,(k<1.5?44:40)*k,22*k,(k<1.5?4:2.4)*k);
+  if(k>=1.5){ g.fillStyle='rgba(255,255,255,.55)'; g.font=`700 ${8.5*k}px Overpass,sans-serif`; g.letterSpacing=`${1.6*k}px`; g.fillText(sub,20*k,47*k); }
+  // north arrow
+  const nx=352*k, ny=30*k; g.fillStyle='#e3101a'; g.beginPath(); g.moveTo(nx,ny-12*k); g.lineTo(nx+6*k,ny+6*k); g.lineTo(nx,ny+2*k); g.closePath(); g.fill();
+  g.fillStyle='rgba(255,255,255,.7)'; g.beginPath(); g.moveTo(nx,ny-12*k); g.lineTo(nx-6*k,ny+6*k); g.lineTo(nx,ny+2*k); g.closePath(); g.fill();
+  g.font=`800 ${8*k}px Overpass,sans-serif`; g.letterSpacing='0px'; g.textAlign='center'; g.fillStyle='#f4f4f2'; g.fillText('N',nx,ny+9*k);
+  // scale bar
+  const len=Math.round(100/mPerPx), x0=20*k, y0=360*k; g.fillStyle='#f4f4f2'; g.fillRect(x0,y0,len*k,1.6*k); g.fillRect(x0,y0-3*k,1.6*k,4.6*k); g.fillRect(x0+len*k-1.6*k,y0-3*k,1.6*k,4.6*k);
+  g.fillStyle='#e3101a'; g.fillRect(x0,y0,len*k/2,1.6*k);
+  if(k<1.5){ g.restore(); return; }
+  g.textAlign='left'; g.textBaseline='bottom'; g.fillStyle='rgba(255,255,255,.6)'; g.font=`700 ${7.5*k}px Overpass,sans-serif`; g.letterSpacing=`${1.2*k}px`; g.fillText('100 M',x0+len*k+6*k,y0+4*k);
+  g.restore();
+}
+function posterLabel(g,k,x,y,text,ang=0,col='rgba(255,255,255,.62)'){
+  if(k<1.5) return;
+  g.save(); g.translate(x,y); g.rotate(ang); g.fillStyle=col; g.font=`800 ${7*k}px Overpass,sans-serif`; g.letterSpacing=`${1.8*k}px`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,0,0); g.restore();
+}
+// instances split into 160 m tiles so frustum culling (and the shadow pass) skips what is off-screen
+const VEG_TILES=[];
+function chunked(geo,mat,items,opts={}){
+  const tiles=new Map();
+  for(const it of items){ const key=Math.floor(it.x/160)+','+Math.floor(it.z/160); if(!tiles.has(key)) tiles.set(key,[]); tiles.get(key).push(it); }
+  for(const list of tiles.values()){
+    const im=new THREE.InstancedMesh(geo,mat,list.length);
+    list.forEach((it,i)=>{ im.setMatrixAt(i,it.m); if(it.c) im.setColorAt(i,it.c); });
+    im.castShadow=!!opts.cast; im.receiveShadow=true; im.computeBoundingSphere(); addW(im);
+    if(opts.maxDist){ const c=im.boundingSphere.center; VEG_TILES.push({m:im,x:c.x,z:c.z,d:opts.maxDist+im.boundingSphere.radius}); }
+  }
+}
+function cullVeg(cam){ for(const t of VEG_TILES){ const dx=t.x-cam.position.x, dz=t.z-cam.position.z; t.m.visible=dx*dx+dz*dz<t.d*t.d; } }
 // rounded minimalist trees: instanced trunks and crowns
 function forestMeshes(list){
   const trunkG=new THREE.CylinderGeometry(0.16,0.22,2.4,6); trunkG.translate(0,1.2,0);
   const crownG=new THREE.IcosahedronGeometry(1,1); crownG.scale(2.1,2.9,2.1); crownG.translate(0,4.6,0);
-  const tr=new THREE.InstancedMesh(trunkG,new THREE.MeshStandardMaterial({color:0x7a6a58,roughness:0.9}),list.length);
-  const cr=new THREE.InstancedMesh(crownG,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9,flatShading:true}),list.length);
-  const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new V3(), p=new V3(), c=new THREE.Color(), r=rng(3);
-  list.forEach(([x,z,sc],i)=>{ p.set(x,H(x,z)-0.15,z); q.setFromAxisAngle(new V3(0,1,0),r()*6.28); s.set(sc,sc*(0.85+r()*0.35),sc); m.compose(p,q,s);
-    tr.setMatrixAt(i,m); cr.setMatrixAt(i,m); c.setHSL(0.24+r()*0.07,0.26+r()*0.14,0.36+r()*0.12); cr.setColorAt(i,c); });
-  tr.castShadow=cr.castShadow=true; cr.receiveShadow=true; addW(tr); addW(cr);
+  const q=new THREE.Quaternion(), s=new V3(), p=new V3(), r=rng(3), trunks=[], crowns=[];
+  list.forEach(([x,z,sc])=>{ p.set(x,H(x,z)-0.15,z); q.setFromAxisAngle(new V3(0,1,0),r()*6.28); s.set(sc,sc*(0.85+r()*0.35),sc); const m=new THREE.Matrix4().compose(p,q,s);
+    const [h,sa,l]=MOOD.tree, c=new THREE.Color().setHSL(h+r()*0.06,sa*(0.8+r()*0.4),l*(0.85+r()*0.3)); trunks.push({x,z,m}); crowns.push({x,z,m,c}); });
+  chunked(trunkG,new THREE.MeshStandardMaterial({color:0x7a6a58,roughness:0.9}),trunks,{cast:true,maxDist:1400});
+  chunked(crownG,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9,flatShading:true}),crowns,{cast:true,maxDist:1400});
+}
+
+const vegU={uTime:{value:0}};
+// low-poly grass tufts (sway in the wind) and bushes; sample(r) returns [x,z] or null
+function scatterVeg(sample,nGrass,nBush){
+  const r=rng(23), m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new V3(), p=new V3(), c=new THREE.Color();
+  const blades=[]; for(let b=0;b<4;b++){ const g=new THREE.BufferGeometry(); const w=0.09, h=0.62;
+    g.setAttribute('position',new THREE.Float32BufferAttribute([-w,0,0, w,0,0, 0.05,h,0.12],3)); g.computeVertexNormals();
+    g.rotateY(b/4*Math.PI*2+0.3); g.translate((b%2-0.5)*0.12,0,(b>1?0.06:-0.06)); blades.push(g); }
+  const tg=mergeGeometries(blades); tg.computeVertexNormals();
+  const gm=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9,side:THREE.DoubleSide,flatShading:true});
+  gm.onBeforeCompile=sh=>{ sh.uniforms.uTime=vegU.uTime; sh.vertexShader='uniform float uTime;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    `#include <begin_vertex>
+     vec4 wp=instanceMatrix*vec4(0.,0.,0.,1.); float sw=sin(uTime*1.4+wp.x*0.21+wp.z*0.17)*0.7+sin(uTime*2.3+wp.x*0.9)*0.3;
+     transformed.x+=sw*0.12*position.y; transformed.z+=sw*0.06*position.y;`); };
+  const gl=[];
+  for(let t=0;t<nGrass*4&&gl.length<nGrass;t++){ const at=sample(r); if(!at) continue; const [x,z]=at;
+    p.set(x,H(x,z)-0.03,z); q.setFromAxisAngle(new V3(0,1,0),r()*6.28); const sc=0.7+r()*0.9; s.set(sc,sc*(0.7+r()*0.7),sc);
+    const [h,sa,l]=MOOD.grass; gl.push({x,z,m:new THREE.Matrix4().compose(p,q,s),c:new THREE.Color().setHSL(h+(r()-0.5)*0.05,sa*(0.75+r()*0.5),l*(0.8+r()*0.35))}); }
+  chunked(tg,gm,gl,{maxDist:340});
+  const bg=new THREE.IcosahedronGeometry(1,0); { const a=bg.attributes.position; for(let i=0;i<a.count;i++){ const x=a.getX(i),y=a.getY(i),z=a.getZ(i), d=1+0.18*Math.sin(x*5+z*3)*Math.cos(y*4); a.setXYZ(i,x*d,Math.max(-0.25,y)*d*0.68+0.25,z*d); } bg.computeVertexNormals(); }
+  const bl=[];
+  for(let t=0;t<nBush*6&&bl.length<nBush;t++){ const at=sample(r); if(!at) continue; const [x,z]=at;
+    const sc=0.35+Math.pow(r(),1.6)*1.1; p.set(x,H(x,z)-0.05,z); q.setFromAxisAngle(new V3(0,1,0),r()*6.28); s.set(sc*(0.8+r()*0.5),sc,sc*(0.8+r()*0.5));
+    const [h,sa,l]=MOOD.bush; bl.push({x,z,m:new THREE.Matrix4().compose(p,q,s),c:new THREE.Color().setHSL(h+(r()-0.5)*0.06,sa*(0.7+r()*0.6),l*(0.8+r()*0.4))}); }
+  chunked(bg,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.92,flatShading:true}),bl,{cast:true,maxDist:800});
+}
+// slim black monolith with a red cap marking a section (the red accent)
+function sectionMarker(x,z,heading,name){
+  const g=new THREE.Group(), y=H(x,z), dark=new THREE.MeshStandardMaterial({color:0x111214,roughness:0.6});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.22,3.4,1.3),dark); body.position.y=1.7; body.castShadow=true; g.add(body);
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.45,1.32),new THREE.MeshStandardMaterial({color:0xe3101a,roughness:0.5,emissive:0x5a0005,emissiveIntensity:0.5})); cap.position.y=3.2; g.add(cap);
+  const t=canvasTex(512,(c,S)=>{ c.fillStyle='#111214'; c.fillRect(0,0,S,S); c.save(); c.translate(S*0.62,S*0.94); c.rotate(-Math.PI/2); c.fillStyle='#f4f4f2';
+    c.font='900 74px Overpass,sans-serif'; c.letterSpacing='4px'; c.fillText(name.toUpperCase(),0,0); c.restore(); });
+  for(const sgn of [1,-1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.2,2.7),new THREE.MeshBasicMaterial({map:t})); pl.position.set(sgn*0.115,1.55,0); pl.rotation.y=sgn*Math.PI/2; g.add(pl); }
+  g.position.set(x,y-0.05,z); g.rotation.y=heading; addW(g);
 }
 
 /* =====================================================================
@@ -440,12 +574,17 @@ const coursesMap={
   water:()=>null,
   spawns:[{name:'Start pad',x:0,z:0,h:0},...COURSES.map(c=>({name:c.name,x:c.x,z:CZ0-20,h:0}))],
   zone(x,z){ for(const c of COURSES) if(Math.abs(x-c.x)<CW&&z>CZ0&&z<CZ1) return [c.name,c.sub]; return null; },
-  mm:{X:x=>190-(x-10)*1.9, Z:z=>360-(z+12)*1.9, angle:(fx,fz)=>-Math.atan2(fx,fz)},
-  drawMap(g){ const {X,Z}=this.mm; g.fillStyle='#d9dccf'; g.fillRect(0,0,380,380);
-    g.fillStyle='#b9b8b0'; g.fillRect(X(20),Z(20),40*1.9,40*1.9);
-    for(const c of COURSES){ g.fillStyle=c.id==='mud'?'#8a7258':'#b8a588'; g.fillRect(X(c.x+6),Z(CZ1),12*1.9,(CZ1-CZ0)*1.9); } },
+  mm:{X:x=>190-(x-10)*1.6, Z:z=>330-(z+12)*1.6, angle:(fx,fz)=>-Math.atan2(fx,fz)},
+  drawMap(g,S=380){ const k=S/380, X=x=>this.mm.X(x)*k, Z=z=>this.mm.Z(z)*k;
+    g.fillStyle='#0a0a0b'; g.fillRect(0,0,S,S);
+    g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=1.2*k; g.strokeRect(X(20),Z(20),40*1.6*k,40*1.6*k);
+    for(const c of COURSES){ g.strokeStyle='#f4f4f2'; g.lineWidth=1.4*k; g.strokeRect(X(c.x+6),Z(CZ1),12*1.6*k,(CZ1-CZ0)*1.6*k);
+      g.fillStyle='#e3101a'; g.fillRect(X(c.x+7.5),Z(CZ0-10)-1.2*k,15*1.6*k,2.4*k);
+      posterLabel(g,k,X(c.x)+0.5,Z((CZ0+CZ1)/2),c.name.toUpperCase(),-Math.PI/2); }
+    posterFrame(g,S,'TEST COURSES','FIVE TRACKS · 110 M EACH',1/1.6); },
   build(){
-    const col=(x,z,c)=>{ const [,m,mud]=features(x,z); c.set(0xbcc6a6).lerp(new THREE.Color(0xc9b89a),Math.max(m*0.9,(1-sstep(24,32,Math.hypot(x,z)))*0.8)).lerp(new THREE.Color(0x7d6a54),mud); };
+    const Gc=MOOD.ground, cg=new THREE.Color(...Gc.grass.map(v=>v/255)), cd=new THREE.Color(...Gc.gravel.map(v=>v/255)), cm=new THREE.Color(...Gc.mud.map(v=>v/255));
+    const col=(x,z,c)=>{ const [,m,mud]=features(x,z); c.copy(cg).lerp(cd,Math.max(m*0.9,(1-sstep(24,32,Math.hypot(x,z)))*0.8)).lerp(cm,mud); };
     meshPass=true;
     terrainFromGrid(-130,-70,260,260,0.65,coursesH,col,groundMat);
     terrainFromGrid(-700,-700,1400,1400,7,(x,z)=>coursesH(x,z)-((x>-128&&x<128&&z>-68&&z<188)?0.6:0),col,groundMat);
@@ -465,6 +604,8 @@ const coursesMap={
     for(let t=0;t<8000&&list.length<700;t++){ const a=r()*6.28, R=50+Math.pow(r(),0.7)*190, x=Math.cos(a)*R, z=Math.sin(a)*R+60;
       if(x>-90&&x<110&&z>18&&z<172||Math.hypot(x,z)<48||Math.hypot(x,z)>238) continue; list.push([x,z,0.7+r()*0.6]); }
     forestMeshes(list);
+    scatterVeg(r=>{ const x=-125+r()*250, z=-65+r()*250; const [,m]=features(x,z); if(m>0.02||Math.hypot(x,z)<28) return null;
+      for(const c of COURSES) if(Math.abs(x-c.x)<10&&z>CZ0-22&&z<CZ0) return null; return [x,z]; },30000,1500);
   },
 };
 
@@ -561,6 +702,9 @@ function polyPrecompute(){
   const mAsph=mask(()=>{ roadsOf('asphalt')(); for(const l of POLY.lots){ path(l.p,true); g.fill(); } g.beginPath(); g.arc(PAD.c[0]-GX0,PAD.c[1]-GZ0,PAD.r,0,Math.PI*2); g.fill();
     g.lineWidth=40; path([P(437,327),P(800,102)],false); g.stroke(); g.lineWidth=6; path(PANEL,false); g.stroke(); });
   const mDark=mask(roadsOf('dark')), mGrav=mask(roadsOf('gravel'));
+  // footprint of every draped surface: the terrain mesh is sunk here so surfaces never clip
+  const mLow=mask(()=>{ for(const r of POLY.roads){ if(r.n==='Measuring straights') continue; g.lineWidth=r.w+2.5; path(r.p,r.c); g.stroke(); }
+    g.lineWidth=42; path([P(437,327),P(800,102)],false); g.stroke(); g.lineWidth=8.5; path(PANEL,false); g.stroke(); });
   const mShoulder=mask(()=>{ for(const r of POLY.roads){ g.lineWidth=r.w+12; path(r.p,r.c); g.stroke(); } for(const l of POLY.lots){ g.lineWidth=12; path(l.p,true); g.fill(); g.stroke(); }
     g.beginPath(); g.arc(PAD.c[0]-GX0,PAD.c[1]-GZ0,PAD.r+6,0,Math.PI*2); g.fill(); g.lineWidth=52; path([P(437,327),P(800,102)],false); g.stroke(); });
   // forest cells from the photo
@@ -617,24 +761,31 @@ function polyPrecompute(){
       }
     }
   }
-  PG={hgt,mu,cls,water};
+  // feature footprints join the sunk mask
+  for(const f of FEAT){ const m=f.w/2+1.4; const xs=[f.a[0],f.b[0]], zs=[f.a[1],f.b[1]];
+    const i0=Math.max(0,Math.floor(Math.min(...xs)-m-GX0)), i1=Math.min(GW-1,Math.ceil(Math.max(...xs)+m-GX0)), j0=Math.max(0,Math.floor(Math.min(...zs)-m-GZ0)), j1=Math.min(GH-1,Math.ceil(Math.max(...zs)+m-GZ0));
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){ const [s,t]=featLocal(f,GX0+i+0.5,GZ0+j+0.5); if(s>=-1.4&&s<=f.L+1.4&&Math.abs(t)<=m) mLow[j*GW+i]=255; } }
+  PG={hgt,mu,cls,water,low:mLow};
 }
 // the ground colours as one texture, 1 px = 1 m, so surface edges come out smooth
 function paintSurface(){
   const cv=document.createElement('canvas'); cv.width=GW; cv.height=GH; const g=cv.getContext('2d');
   const im=g.createImageData(GW,GH), nz=periodicNoise(128,6,3,5);
-  const col={[SURF.grass]:[184,196,160],[SURF.forest]:[146,162,122],[SURF.gravel]:[208,196,168],[SURF.mud]:[120,98,74],[SURF.aggregate]:[150,142,128]};
+  const G=MOOD.ground, col={[SURF.grass]:G.grass,[SURF.forest]:G.forest,[SURF.gravel]:G.gravel,[SURF.mud]:G.mud,[SURF.aggregate]:G.agg};
   for(let k=0;k<GW*GH;k++){ const c=col[PG.cls[k]]||col[SURF.grass], i=k%GW, j=(k/GW)|0, v=0.94+0.12*nz[((j>>2)&127)*128+((i>>2)&127)];
     im.data[k*4]=c[0]*v; im.data[k*4+1]=c[1]*v; im.data[k*4+2]=c[2]*v; im.data[k*4+3]=255; }
   g.putImageData(im,0,0);
   const path=(p,closed)=>{ g.beginPath(); p.forEach(([x,z],i)=>{ i?g.lineTo(x-GX0,z-GZ0):g.moveTo(x-GX0,z-GZ0); }); if(closed) g.closePath(); };
-  g.fillStyle='#a8aaa8'; for(const l of POLY.lots){ path(l.p,true); g.fill(); }
+  const rgb=a=>`rgb(${a[0]},${a[1]},${a[2]})`;
+  g.fillStyle=rgb(G.lot); for(const l of POLY.lots){ path(l.p,true); g.fill(); }
   g.beginPath(); g.arc(PAD.c[0]-GX0,PAD.c[1]-GZ0,PAD.r,0,Math.PI*2); g.fill();
-  g.strokeStyle='#d5d0c4'; g.lineCap=g.lineJoin='round';
+  g.strokeStyle=rgb(G.shoulder); g.lineCap=g.lineJoin='round';
   for(const r of POLY.roads){ g.lineWidth=r.w+3; path(r.p,r.c); g.stroke(); }  // light shoulders around every road
   g.lineWidth=42; path([P(437,327),P(800,102)],false); g.stroke();
   const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
+function lowAt(x,z){ let fx=clamp(x-GX0-0.5,0,GW-1.001), fz=clamp(z-GZ0-0.5,0,GH-1.001); const i=Math.floor(fx), j=Math.floor(fz), tx=fx-i, tz=fz-j, k=j*GW+i, L=PG.low;
+  return ((L[k]*(1-tx)+L[k+1]*tx)*(1-tz)+(L[k+GW]*(1-tx)+L[k+GW+1]*tx)*tz)/255; }
 function gridH(x,z){
   let fx=x-GX0-0.5, fz=z-GZ0-0.5; const ox=fx<0?-fx:fx>GW-1?fx-GW+1:0, oz=fz<0?-fz:fz>GH-1?fz-GH+1:0;
   fx=clamp(fx,0,GW-1.001); fz=clamp(fz,0,GH-1.001);
@@ -684,34 +835,45 @@ const polygonMap={
     if(bestN) return [bestN.k==='gravel'?'Terrain circuit':bestN.n, bestN.k==='gravel'?OFFROAD_INFO:ROADINFO[bestN.n]||'Polygon road'];
     return null;
   },
-  mm:{X:x=>190+x*0.315, Z:z=>190+z*0.315, angle:(fx,fz)=>Math.atan2(fx,-fz)},
-  drawMap(g){
-    const {X,Z}=this.mm; g.fillStyle='#dde0d3'; g.fillRect(0,0,380,380);
-    const F=POLY.forest, fb=Uint8Array.from(atob(F.bits),c=>c.charCodeAt(0)); g.fillStyle='#9fb08a';
-    for(let j=0;j<F.h;j++) for(let i=0;i<F.w;i++){ const k=j*F.w+i; if((fb[k>>3]>>(7-(k&7)))&1) g.fillRect(X(F.x0+i*F.cell),Z(F.z0+j*F.cell),F.cell*0.315+0.6,F.cell*0.315+0.6); }
-    g.fillStyle='#c9c9c2'; for(const b of POLY.build) g.fillRect(X(b[0]),Z(b[1]),(b[2]-b[0])*0.315,(b[3]-b[1])*0.315);
-    g.fillStyle='#a9abab'; for(const l of POLY.lots){ g.beginPath(); l.p.forEach(([x,z],i)=>i?g.lineTo(X(x),Z(z)):g.moveTo(X(x),Z(z))); g.fill(); }
+  mm:{X:x=>196+x*0.28, Z:z=>212+z*0.28, angle:(fx,fz)=>Math.atan2(fx,-fz)},
+  drawMap(g,S=380){
+    const k=S/380, X=x=>this.mm.X(x)*k, Z=z=>this.mm.Z(z)*k, sc=0.28*k;
+    g.fillStyle='#0a0a0b'; g.fillRect(0,0,S,S);
+    const line=(p,closed)=>{ g.beginPath(); p.forEach(([x,z],i)=>i?g.lineTo(X(x),Z(z)):g.moveTo(X(x),Z(z))); if(closed) g.closePath(); };
+    // forest as a quiet dot field
+    const F=POLY.forest, fb=Uint8Array.from(atob(F.bits),c=>c.charCodeAt(0)); g.fillStyle='rgba(255,255,255,.13)';
+    for(let j=0;j<F.h;j++) for(let i=0;i<F.w;i++){ const q=j*F.w+i; if((fb[q>>3]>>(7-(q&7)))&1&&((i+j)&1)===0){ g.beginPath(); g.arc(X(F.x0+(i+0.5)*F.cell),Z(F.z0+(j+0.5)*F.cell),0.9*k,0,Math.PI*2); g.fill(); } }
+    g.strokeStyle='rgba(255,255,255,.16)'; g.lineWidth=1*k; for(const b of POLY.build) g.strokeRect(X(b[0]),Z(b[1]),(b[2]-b[0])*sc,(b[3]-b[1])*sc);
+    g.fillStyle='rgba(255,255,255,.06)'; for(const l of POLY.lots){ line(l.p,true); g.fill(); }
     g.lineCap=g.lineJoin='round';
-    for(const r of POLY.roads){ g.strokeStyle=r.k==='gravel'?'#b49f7d':r.k==='dark'?'#5b5e62':'#7f8285'; g.lineWidth=Math.max(1.4,r.w*0.315);
-      g.beginPath(); r.p.forEach(([x,z],i)=>i?g.lineTo(X(x),Z(z)):g.moveTo(X(x),Z(z))); if(r.c) g.closePath(); g.stroke(); }
-    g.strokeStyle='#e3101a'; g.lineWidth=1.6; for(const f of FEAT) if(f.name&&!f.band){ g.beginPath(); g.moveTo(X(f.a[0]),Z(f.a[1])); g.lineTo(X(f.b[0]),Z(f.b[1])); g.stroke(); }
-    g.lineWidth=12*0.315; g.beginPath(); g.moveTo(X(P(437,327)[0]),Z(P(437,327)[1])); g.lineTo(X(P(800,102)[0]),Z(P(800,102)[1])); g.stroke();
-    g.fillStyle='#7f8285'; g.beginPath(); g.arc(X(PAD.c[0]),Z(PAD.c[1]),PAD.r*0.315,0,Math.PI*2); g.fill();
+    for(const r of POLY.roads){ if(r.n==='Speed circuit'||r.n==='Measuring straights') continue;
+      g.setLineDash(r.k==='gravel'?[2*k,2.5*k]:[]); g.strokeStyle=r.k==='gravel'?'rgba(255,255,255,.42)':'rgba(255,255,255,.66)'; g.lineWidth=Math.max(1*k,r.w*sc*0.55); line(r.p,r.c); g.stroke(); }
+    g.setLineDash([]);
+    const oval=POLY.roads.find(r=>r.n==='Speed circuit'); g.strokeStyle='#f4f4f2'; g.lineWidth=3*k; line(oval.p,true); g.stroke();
+    g.strokeStyle='#e3101a'; g.lineWidth=7*k*0.9; line([P(437,327),P(800,102)],false); g.stroke();
+    g.lineWidth=2.2*k; for(const f of FEAT) if(f.name&&!f.band){ line([f.a,f.b],false); g.stroke(); }
+    line(PANEL,false); g.stroke();
+    g.strokeStyle='#f4f4f2'; g.lineWidth=1.2*k; g.beginPath(); g.arc(X(PAD.c[0]),Z(PAD.c[1]),PAD.r*sc,0,Math.PI*2); g.stroke();
+    g.beginPath(); g.arc(X(PAD.c[0]),Z(PAD.c[1]),PAD.r*sc*0.5,0,Math.PI*2); g.stroke();
+    const L=(px,py,t,a=0,c)=>{ const [x,z]=P(px,py); posterLabel(g,k,X(x),Z(z),t,a,c); };
+    L(1000,150,'SPEED CIRCUIT'); L(615,250,'SPECIAL ROADS',-0.555,'#ff4a50'); L(535,218,'SKID PAD'); L(985,420,'TERRAIN CIRCUIT');
+    L(720,965,'STEEP SLOPES',0,'#ff4a50'); L(330,960,'SLOPE CIRCUIT'); L(470,700,'SERPENTINE'); L(120,640,'FACTORY',-Math.PI/2,'rgba(255,255,255,.35)');
+    posterFrame(g,S,'TATRA POLYGON','KOPŘIVNICE · 22 KM OF TEST ROADS',1/0.28);
   },
   build(){
     if(!PG) polyPrecompute();
-    const cGrass=new THREE.Color(0xc3cbad);
+    const cGrass=new THREE.Color(...MOOD.ground.grass.map(v=>v/255));
     const surfTex=paintSurface();
     const tmat=new THREE.MeshStandardMaterial({map:surfTex,roughness:0.95,metalness:0});
-    const tm=terrainFromGrid(GX0,GZ0,GW-1,GH-1,2,gridH,(x,z,c)=>c.setRGB(1,1,1),tmat);
+    const tm=terrainFromGrid(GX0,GZ0,GW-1,GH-1,2,(x,z)=>gridH(x,z)-0.22*lowAt(x,z),(x,z,c)=>c.setRGB(1,1,1),tmat);
     { const uv=tm.geometry.attributes.uv, p=tm.geometry.attributes.position; for(let i=0;i<uv.count;i++) uv.setXY(i,(p.getX(i)-GX0)/GW,1-(p.getZ(i)-GZ0)/GH); uv.needsUpdate=true; }
     // surroundings beyond the photo, low resolution
-    terrainFromGrid(-2200,-2200,4400,4400,40,(x,z)=>{ const inside=x>GX0&&x<GX0+GW&&z>GZ0&&z<GZ0+GH; return inside?polyBase(x,z)-8:polyBase(clamp(x,GX0,GX0+GW),clamp(z,GZ0,GZ0+GH))*0.9-2; },(x,z,c)=>c.copy(cGrass).multiplyScalar(0.97),groundMat);
+    terrainFromGrid(-1700,-1700,3400,3400,40,(x,z)=>{ const inside=x>GX0&&x<GX0+GW&&z>GZ0&&z<GZ0+GH; return inside?polyBase(x,z)-8:polyBase(clamp(x,GX0,GX0+GW),clamp(z,GZ0,GZ0+GH))*0.9-2; },(x,z,c)=>c.copy(cGrass).multiplyScalar(0.97),groundMat);
     // roads
-    for(const r of POLY.roads){ if(r.n==='Measuring straights') continue;
+    POLY.roads.forEach((r,i)=>{ if(r.n==='Measuring straights') return;
       const mat=r.k==='gravel'?RM.gravel:r.k==='dark'?RM.dark:RM.asphalt;
-      ribbon(r.p,r.c,r.w,mat,{across:r.n==='Speed circuit'?7:undefined,uScale:4,vScale:4});
-    }
+      ribbon(r.p,r.c,r.w,mat,{across:r.n==='Speed circuit'?7:undefined,uScale:4,vScale:4,yOff:0.03,layer:r.n==='Speed circuit'?30:r.k==='gravel'?i:i+8});
+    });
     const oval=POLY.roads.find(r=>r.n==='Speed circuit');
     for(const t of [-2.67,2.67]) dashes(oval.p,true,t,4,8,0.15,RM.white);
     for(const t of [-7.75,7.75]) ribbon(oval.p,true,0.2,RM.white,{t0:t-0.1,t1:t+0.1,across:2,yOff:0.06,step:3});
@@ -728,15 +890,15 @@ const polygonMap={
     // measuring band lanes and all features
     for(const f of FEAT){
       if(f.type==='ford'||f.type==='mud'){
-        ribbon([f.a,f.b],false,f.w,RM[f.mat],{across:3,step:1,uScale:1,vScale:1,yOff:0.03});
+        ribbon([f.a,f.b],false,f.w,RM[f.mat],{across:3,step:1,uScale:1,vScale:1,yOff:0.03,layer:36});
         addW(waterPlane(f,f.level,f.type==='mud'?RM.mud:RM.water));
         continue; }
-      const opts={across:f.type==='tilt'||f.type==='twist'?5:3,step:f.type==='ramp'||f.type==='twist'||f.type==='bend'?1:2,uScale:1,vScale:1,yOff:0.04};
+      const opts={across:f.type==='tilt'||f.type==='twist'?5:3,step:f.type==='ramp'||f.type==='twist'||f.type==='bend'?1:2,uScale:1,vScale:1,yOff:0.04,layer:36};
       ribbon([f.a,f.b],false,f.w,RM[f.mat]||RM.asphalt,opts);
       if(f.type==='shallow') addW(waterPlane(f,polyBase((f.a[0]+f.b[0])/2,(f.a[1]+f.b[1])/2)-0.05,RM.water));
     }
     // panel road, skid pad with circles, vehicle park, noise strip lines
-    ribbon(PANEL,false,6,RM.panel,{uScale:1,vScale:1});
+    ribbon(PANEL,false,6,RM.panel,{uScale:1,vScale:1,layer:34});
     for(const r of [20,30,40,49.6]){ const pts=[]; for(let k=0;k<64;k++){ const a=k/64*Math.PI*2; pts.push([PAD.c[0]+Math.cos(a)*r,PAD.c[1]+Math.sin(a)*r]); }
       ribbon(pts,true,0.25,RM.white,{t0:-0.125,t1:0.125,across:2,yOff:0.07,step:3}); }
     const lot=POLY.lots[0].p; const xs=lot.map(p=>p[0]), zs=lot.map(p=>p[1]);
@@ -751,7 +913,7 @@ const polygonMap={
       boxes.forEach(([x,z],i)=>{ m.compose(new V3(x,H(x,z),z),q,new V3(1,1,1)); im.setMatrixAt(i,m); im.setColorAt(i,c.setHex(pal[Math.floor(r()*pal.length)])); });
       im.castShadow=im.receiveShadow=true; addW(im); }
     // moose-test cones on the speed circuit by the skid pad entry
-    { const cg=new THREE.ConeGeometry(0.18,0.75,10); cg.translate(0,0.375,0); const cm=new THREE.MeshStandardMaterial({color:0xff5a1f,roughness:0.6});
+    { const cg=new THREE.ConeGeometry(0.18,0.75,10); cg.translate(0,0.375,0); const cm=new THREE.MeshStandardMaterial({color:0xe3101a,roughness:0.55});
       const curve=new THREE.CatmullRomCurve3(oval.p.map(p=>new V3(p[0],0,p[1])),true,'centripetal'), L=curve.getLength(), pts=[];
       const startU=(()=>{ let bu=0,bd=1e9; for(let u=0;u<1;u+=0.002){ const p=curve.getPointAt(u), d=Math.hypot(p.x-P(470,110)[0],p.z-P(470,110)[1]); if(d<bd){bd=d;bu=u;} } return bu; })();
       const lanes=[[0,12,0],[13.5,11,3.5],[24.5,13,0]];
@@ -767,6 +929,11 @@ const polygonMap={
     for(let j=0;j<F.h;j++) for(let i=0;i<F.w;i++){ const k=j*F.w+i; if(!((fb[k>>3]>>(7-(k&7)))&1)) continue;
       for(let n=0;n<2;n++){ const x=F.x0+(i+r())*F.cell, z=F.z0+(j+r())*F.cell; const c=PG.cls[cellAt(x,z)]; if(c!==SURF.forest) continue; list.push([x,z,0.8+r()*0.7]); } }
     forestMeshes(list);
+    // grass and bushes on open ground, kept off every road and feature
+    scatterVeg(r=>{ const x=GX0+r()*GW, z=GZ0+r()*GH, k=cellAt(x,z), c=PG.cls[k];
+      if(PG.low[k]>0||lowAt(x,z)>0.01) return null; if(c===SURF.forest) return r()<0.25?[x,z]:null; if(c!==SURF.grass) return null;
+      if(pointInPoly(x,z,POLY.lots[0].p)||Math.hypot(x-PAD.c[0],z-PAD.c[1])<PAD.r+4) return null; return [x,z]; },60000,4200);
+    for(const sp of this.spawns.slice(0,8)){ const hx=Math.sin(sp.h), hz=Math.cos(sp.h); sectionMarker(sp.x+hz*-11,sp.z-hx*-11,sp.h,sp.name); }
   },
 };
 const MAPS={polygon:polygonMap,courses:coursesMap};
@@ -777,7 +944,7 @@ const MAPS={polygon:polygonMap,courses:coursesMap};
    The backbone tube runs along z at y=yB. Every half-axle pivots on the
    tube centreline and swings on an arc (camber changes with travel).
    ===================================================================== */
-const PH={ r:0.62, L:1.0, yB:-0.8, thRest:0.05, thMin:-0.22, thMax:0.24, thMaxPair:0.40, kp:0.36 };
+const PH={ r:0.62, L:1.0, yB:-0.55, thRest:0.05, thMin:-0.22, thMax:0.24, thMaxPair:0.40, kp:0.36 };
 const defaultFront=n=>({2:1,3:1,4:2,5:2,6:3,7:3,8:4})[n];
 function axleLayout(n,front){
   const zs=[]; let z=0;
@@ -789,7 +956,7 @@ function axleLayout(n,front){
 }
 const state={
   cfg:{n:4,front:2,driven:[true,true,true,true],steer:[true,true,false,false]},
-  map:'polygon', steerMode:'normal', diff:1, low:false, xray:false, hl:false, cam:0, started:false, muted:false,
+  map:'polygon', mood:'golden', steerMode:'normal', diff:1, low:false, xray:false, hl:false, cam:0, started:false, muted:false,
 };
 let T=null;
 
@@ -913,6 +1080,10 @@ function step(dt,input){
     if(bottom>0) Fn+=wh.k*30*bottom+wh.c*2*Math.max(0,wh.compVel);
     wh.Fn=Math.max(0,Fn);
   }
+  // anti-roll coupling per axle: swing axles have a high roll centre, so the two sides of an axle share load
+  // when the chassis rolls (like an anti-roll bar); this keeps the chassis from tipping in fast corners
+  for(let i=0;i<cfg.n;i++){ const Lw=T.wheels[i*2], Rw=T.wheels[i*2+1]; if(!(Lw.contact&&Rw.contact)) continue;
+    const d=clamp((Lw.comp-Rw.comp)*Lw.k*0.9+(Lw.compVel-Rw.compVel)*Lw.c*0.5,-1.5*Wst,1.5*Wst); Lw.Fn=Math.max(0,Lw.Fn+d); Rw.Fn=Math.max(0,Rw.Fn-d); }
   T.groundedCount=grounded;
 
   const vlong=v.dot(_fwd), dir=input.dir, thr=input.throttle;
@@ -978,6 +1149,7 @@ function step(dt,input){
   _qi.copy(q).invert();
   _tmp.copy(w).applyQuaternion(_qi); _tmp2.copy(_Tq).applyQuaternion(_qi);
   _tmp.x+=_tmp2.x/I.x*dt; _tmp.y+=_tmp2.y/I.y*dt; _tmp.z+=_tmp2.z/I.z*dt;
+  _tmp.z*=1-1.6*dt; _tmp.x*=1-0.5*dt; // roll and pitch damping
   w.copy(_tmp.applyQuaternion(q)).multiplyScalar(1-0.3*dt);
   _dq.set(w.x*dt*0.5,w.y*dt*0.5,w.z*dt*0.5,0).multiply(q);
   q.x+=_dq.x; q.y+=_dq.y; q.z+=_dq.z; q.w+=_dq.w; q.normalize();
@@ -1486,6 +1658,18 @@ document.querySelectorAll('#steerSeg button').forEach(b=>b.onclick=()=>setSteerM
 document.querySelectorAll('#diffSeg button').forEach(b=>b.onclick=()=>{ state.diff=+b.dataset.d; refreshUI(); });
 document.querySelectorAll('#rangeSeg button').forEach(b=>b.onclick=()=>{ state.low=b.dataset.r==='1'; refreshUI(); });
 document.querySelectorAll('#mapSeg button').forEach(b=>b.onclick=()=>setMap(b.dataset.map));
+document.querySelectorAll('#moodSeg button').forEach(b=>b.onclick=()=>setMood(b.dataset.mood));
+$('mapBox').onclick=()=>toggleBigMap(); $('bigMap').onclick=()=>toggleBigMap();
+function toggleBigMap(){ $('bigMap').hidden=!$('bigMap').hidden; if(!$('bigMap').hidden) drawBigMap(); }
+addEventListener('keydown',e=>{ if(e.repeat||e.target.tagName==='SELECT') return;
+  if(e.code==='KeyN') toggleBigMap();
+  if(e.code==='Escape'&&!$('bigMap').hidden) toggleBigMap();
+  if(e.code==='KeyV'){ const m=Object.keys(MOODS); setMood(m[(m.indexOf(state.mood)+1)%m.length]); } });
+function setMood(id){
+  state.mood=id; applyMood(id);
+  RM.asphalt.color.setHex(MOOD.road); RM.dark.color.setHex(MOOD.roadDark); RM.gravel.color.setHex(MOOD.gravelR);
+  clearWorld(); MAP.build(); FX.reset(); refreshUI(); toast('Mood: '+MOOD.label);
+}
 $('camBtn').onclick=()=>{ state.cam=(state.cam+1)%CAMS.length; refreshUI(); };
 $('xray').onclick=()=>{ state.xray=!state.xray; applyView(); };
 $('hlBtn').onclick=()=>{ state.hl=!state.hl; applyView(); };
@@ -1515,7 +1699,7 @@ function refreshUI(){
   const i=ALL.findIndex(a=>a.n===c.n&&a.mask===maskOf(c));
   $('cfgName').textContent=`${i+1} / ${ALL.length} · ${formula(c)} · axles ${c.driven.map((d,k)=>d?k+1:null).filter(Boolean).join(',')}`;
   const seg=(id,attr,val)=>document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle('on',b.dataset[attr]===String(val)));
-  seg('steerSeg','m',state.steerMode); seg('diffSeg','d',state.diff); seg('rangeSeg','r',state.low?1:0); seg('mapSeg','map',state.map);
+  seg('steerSeg','m',state.steerMode); seg('diffSeg','d',state.diff); seg('rangeSeg','r',state.low?1:0); seg('mapSeg','map',state.map); seg('moodSeg','mood',state.mood);
   $('camBtn').textContent='Camera: '+CAMS[state.cam];
   $('hSteer').textContent={normal:'Normal',all:'All-wheel',crab:'Crab'}[state.steerMode]; $('hSteer').classList.toggle('hot',state.steerMode!=='normal');
   $('hDiff').textContent=['Open','Inter-axle','All locked'][state.diff]; $('hDiff').classList.toggle('hot',state.diff===2);
@@ -1527,12 +1711,12 @@ function buildPlaces(){
   for(const s of MAP.spawns){ const b=document.createElement('button'); b.textContent=s.name; b.onclick=()=>teleport(s); t.append(b); }
 }
 function teleport(s){ createTruck({p:new V3(s.x,H(s.x,s.z)+1.5,s.z),q:new THREE.Quaternion().setFromAxisAngle(Y,s.h||0)}); snapCam=true; refreshUI(); }
-function resetUpright(){ const f=_fwd.set(0,0,1).applyQuaternion(T.q), yaw=Math.atan2(f.x,f.z); const p=T.p.clone(); p.y=Math.max(p.y,H(p.x,p.z)+1.5)+0.3;
+function resetUpright(){ const f=_fwd.set(0,0,1).applyQuaternion(T.q); if(Math.abs(f.y)>0.9) f.set(0,0,1); const yaw=Math.atan2(f.x,f.z); const p=T.p.clone(); p.y=Math.max(p.y,H(p.x,p.z)+1.5)+0.3;
   createTruck({p,q:new THREE.Quaternion().setFromAxisAngle(Y,yaw)}); refreshUI(); }
 function setMap(id){
   state.map=id; MAP=MAPS[id]; clearWorld(); MAP.build(); FX.reset();
   mapBg=document.createElement('canvas'); mapBg.width=mapBg.height=380; MAP.drawMap(mapBg.getContext('2d'));
-  buildPlaces(); teleport(MAP.spawns[0]); toast(MAP.name);
+  buildPlaces(); teleport(MAP.spawns[0]); refreshUI(); toast(MAP.name);
 }
 
 /* ---------------- camera ---------------- */
@@ -1561,12 +1745,19 @@ function updateCamera(dt){
 /* ---------------- HUD ---------------- */
 const sctx=$('schem').getContext('2d'), mctx=$('map').getContext('2d');
 let mapBg=null;
-function drawMap(){
-  const g=mctx; g.drawImage(mapBg,0,0);
-  const f=_fwd.set(0,0,1).applyQuaternion(T.q), mm=MAP.mm;
-  g.save(); g.translate(mm.X(T.p.x),mm.Z(T.p.z)); g.rotate(mm.angle(f.x,f.z));
-  g.fillStyle='#e3101a'; g.strokeStyle='#ffffff'; g.lineWidth=2; g.beginPath(); g.moveTo(0,-11); g.lineTo(7,8); g.lineTo(0,4); g.lineTo(-7,8); g.closePath(); g.fill(); g.stroke(); g.restore();
+// truck marker: red dot, white heading wedge, slow pulse ring
+function drawMarker(g,k){
+  const f=_fwd.set(0,0,1).applyQuaternion(T.q), mm=MAP.mm, x=mm.X(T.p.x)*k, y=mm.Z(T.p.z)*k, t=performance.now()/1000;
+  const pr=(6+((t*0.8)%1)*14)*k; g.strokeStyle=`rgba(227,16,26,${0.8*(1-((t*0.8)%1))})`; g.lineWidth=1.4*k; g.beginPath(); g.arc(x,y,pr,0,Math.PI*2); g.stroke();
+  g.save(); g.translate(x,y); g.rotate(mm.angle(f.x,f.z));
+  g.fillStyle='rgba(255,255,255,.9)'; g.beginPath(); g.moveTo(0,-14*k); g.lineTo(4.5*k,-5*k); g.lineTo(-4.5*k,-5*k); g.closePath(); g.fill(); g.restore();
+  g.fillStyle='#e3101a'; g.beginPath(); g.arc(x,y,4.2*k,0,Math.PI*2); g.fill(); g.strokeStyle='#0a0a0b'; g.lineWidth=1.4*k; g.stroke();
 }
+function drawMap(){ const g=mctx; g.drawImage(mapBg,0,0); drawMarker(g,1); if(!$('bigMap').hidden) drawBigMap(); }
+let bigBg=null, bigFor=null;
+function drawBigMap(){ const cv=$('bigMapC'), g=cv.getContext('2d'), S=cv.width;
+  if(bigFor!==MAP){ bigBg=document.createElement('canvas'); bigBg.width=bigBg.height=S; MAP.drawMap(bigBg.getContext('2d'),S); bigFor=MAP; }
+  g.drawImage(bigBg,0,0); drawMarker(g,S/380); }
 let hudT=0, zoneKey='';
 function updateHUD(dt){
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('toast').classList.remove('show'); }
@@ -1589,7 +1780,7 @@ mapBg=document.createElement('canvas'); mapBg.width=mapBg.height=380; MAP.drawMa
 buildPlaces();
 setConfig(4,[true,true,true,true],2);
 teleport(MAP.spawns[0]);
-let last=performance.now(), acc=0; const DT=1/300;
+let last=performance.now(), acc=0, flipT=0; const DT=1/300;
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   readInput(dt);
@@ -1597,11 +1788,14 @@ function frame(now){
   while(acc>=DT&&steps<20){ step(DT,input); acc-=DT; steps++; }
   if(steps>=20) acc=0;
   updateTruckMesh(dt); updateFX(dt); updateCamera(dt); updateHUD(dt); updateAudio();
+  vegU.uTime.value=now/1000; updateMotes(dt,camera,now/1000); cullVeg(camera);
+  // auto-right: a chassis left on its side or roof for 2.5 s is set back on its wheels
+  { const upY=_fwd.set(0,1,0).applyQuaternion(T.q).y; if(upY<0.25&&T.v.length()<2.5){ flipT+=dt; if(flipT>2.5){ flipT=0; resetUpright(); toast('Chassis set back on its wheels'); } } else flipT=0; }
   renderer.render(scene,camera);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__sim={get T(){return T;},state,step,input,setConfig,setSteerMode,setMap,teleport,ALL,H,MAPS,applyView,CAMS,
+window.__sim={setMood,get T(){return T;},state,step,input,setConfig,setSteerMode,setMap,teleport,ALL,H,MAPS,applyView,CAMS,
   orbit:(y,p,d)=>{orbitYaw=y;orbitPitch=p;if(d)dist=d;snapCam=true;},
   info:()=>({calls:renderer.info.render.calls,tris:renderer.info.render.triangles}),
   fx:()=>({tracks:FX.tnext,live:[...FX.age].filter((a,i)=>a<FX.life[i]).length})};

@@ -116,3 +116,14 @@ The real road geometry from OpenStreetMap could not be fetched from this environ
   climbed by 8×8; a 4×2 stalls just below the 65 % crest from standstill; deep ford wading 0.59 m; mud ford; 16×16 on
   the terrain circuit; crab on the skid pad. Courses map still builds and drives.
 - Render load: about 450 draw calls and 1.6 M triangles on the polygon map, with no post-processing and pixel ratio 1.
+
+# v4 (feedback round)
+- [x] K1 Harder to roll over: chassis lowered relative to the centre of mass, per-axle anti-roll coupling, roll damping,
+      auto-right after 2.5 s on its side. Full-lock turn test at 54–90 km/h: v3 flipped 4×4, 8×8 and 16×16; v4 stays under 6° roll.
+- [x] K2 Poster minimap: black field, white speed circuit, grey roads, dashed gravel, red test features, dot-field forest,
+      title block, north arrow, scale bar, pulsing red marker. Click it or press N for a large version with labels.
+- [x] K3 Mood: sky shader with sun disc, glow and horizon haze; three layered hill silhouettes; drifting dust motes;
+      three moods (Golden hour, White, Dusk) in the garage or with V; red-capped black section markers.
+- [x] K4 No clipping: terrain mesh sunk 22 cm under every road and feature footprint; each road gets its own depth offset, so crossings stop flickering.
+- [x] K5 Vegetation: 60 000 swaying low-poly grass tufts and 4 200 bushes on the polygon (30 000 and 1 500 on the courses),
+      kept off roads, features, the pad and the vehicle park; tiled and distance-culled.
