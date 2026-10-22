@@ -137,3 +137,18 @@ The real road geometry from OpenStreetMap could not be fetched from this environ
       upright, stops at trees, scatters 13 of 28 cones when driven through the cone lanes.
 - [x] L3 Teleport from the map: Places removed from the garage; open the big map (click the minimap or N), hover a red
       point to see its name, click it to go there, or click any open ground to drop the truck at that spot.
+
+# v6 (CAD geometry from Tatra_geometry_02.blend)
+- [x] M1 Steered axle, non-steered axle, transfer case and wheel taken from the supplied Blender model.
+      `blend/export.py` splits each axle by connected parts into body (on the backbone), swing half-axle
+      (housing, bellows, links; +x side, mirrored) and, for the steered axle, the knuckle that turns on the kingpin;
+      drops hardware under 5 cm; dissolves flat CAD areas; one gentle decimation pass (never below 40 %); wheel tyre
+      kept at full detail. 190 k unique triangles, written as quantised binary (uint16 positions, int8 normals),
+      gzip 2.7 MB, embedded and decompressed in the browser.
+- [x] M2 Dimensions follow the model: wheel Ø 1.434 m, kingpin 0.80 m and wheel centre 0.92 m from the backbone axis
+      (track 1.84 m). Steered rear axles sit 1.65 m apart to clear the steering linkage.
+- [x] M3 Detailed parts receive shadows; simple hidden proxies cast them (keeps the shadow pass cheap). Draw calls ~165 for an 8×8.
+- [x] M4 Centre of mass lowered and anti-roll coupling raised for the taller wheels and narrower track:
+      full-lock turns at 36–90 km/h, 4×4 / 8×8 / 16×16, max roll 4°, no flips. All course runs still pass.
+- [x] M5 Fixed a first-frame bug: a negative dt after the async load stalled physics and HUD for ~15 frames.
+- Not included in the repo: the 28 MB source .blend (only the export scripts and the generated binary).
