@@ -127,3 +127,13 @@ The real road geometry from OpenStreetMap could not be fetched from this environ
 - [x] K4 No clipping: terrain mesh sunk 22 cm under every road and feature footprint; each road gets its own depth offset, so crossings stop flickering.
 - [x] K5 Vegetation: 60 000 swaying low-poly grass tufts and 4 200 bushes on the polygon (30 000 and 1 500 on the courses),
       kept off roads, features, the pad and the vehicle park; tiled and distance-culled.
+
+# v5 (feedback round)
+- [x] L1 Tyre marks by surface: block-tread prints in dirt and gravel, flattened prints in grass, deep ruts in mud,
+      black rubber streaks on paved roads only while a tyre slides, spins or brakes hard; none in water.
+- [x] L2 Collisions with world objects (read "shooters" as obstacles): factory halls and buildings, the control tower,
+      parked trucks, section markers, speed-circuit guard rail, gate posts and every tree trunk are solid; the
+      moose-test cones get knocked flying. A thump plays on hard hits. Verified: the truck stops at a hall wall
+      upright, stops at trees, scatters 13 of 28 cones when driven through the cone lanes.
+- [x] L3 Teleport from the map: Places removed from the garage; open the big map (click the minimap or N), hover a red
+      point to see its name, click it to go there, or click any open ground to drop the truck at that spot.
